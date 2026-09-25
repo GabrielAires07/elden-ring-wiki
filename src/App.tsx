@@ -17,7 +17,7 @@ function App() {
   const [sugestoes, setSugestoes] = useState<Boss[]>([]); //Sugestões enquando o usuário digita
   const [modalAberto, setModalAberto] = useState(false);  
 
-  // Busca inicial 
+  // Boss inicial 
   useEffect(() => {
     buscarChefeExato('Malenia');
   }, []);
@@ -144,7 +144,7 @@ function App() {
             Buscando dados da Térvore...
           </p>
         ) : boss ? (
-          <div className="flex flex-col items-center animate-fade-in text-left">
+          <div className="flex flex-col items-center text-left">
             {boss.image ? (
               <>
                 {/* Imagem padrão do card (Agora clicável) */}
@@ -159,26 +159,29 @@ function App() {
                 {/* O modal com a imagem expandida */}
                 {modalAberto && (
                   <div 
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 cursor-zoom-out"
-                    onClick={() => setModalAberto(false)} // Clicar fora fecha a imagem
+                    className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 backdrop-blur-md p-4 cursor-zoom-out"
+                    onClick={() => setModalAberto(false)}
                   >
-                    <div className="relative max-w-4xl w-full flex flex-col items-center">
-                      <p className="text-amber-500 mb-4 font-['Cinzel'] tracking-widest uppercase">
-                        {boss.name}
-                      </p>
-                      <img 
-                        src={boss.image} 
-                        alt={boss.name} 
-                        className="w-full h-auto max-h-[80vh] object-contain rounded-lg border border-amber-900/50 shadow-[0_0_50px_rgba(180,83,9,0.3)] cursor-default"
-                        onClick={(e) => e.stopPropagation()} // Impede que o clique na própria imagem feche o modal
-                      />
-                      <button 
-                        className="mt-6 text-neutral-400 hover:text-white uppercase tracking-widest text-sm transition-colors"
-                        onClick={() => setModalAberto(false)}
-                      >
-                        [ Fechar ]
-                      </button>
-                    </div>
+                    {/* Nome do boss acima da Imagem */}
+                    <p className="text-amber-500 mb-6 font-['Cinzel'] tracking-widest uppercase text-3xl md:text-4xl drop-shadow-[0_5px_5px_rgba(0,0,0,1)] text-center">
+                      {boss.name}
+                    </p>
+                    
+                    {/* Imagem cbre até 95% da largura e 80% da altura da tela */}
+                    <img 
+                      src={boss.image} 
+                      alt={boss.name} 
+                      className="max-w-[95vw] max-h-[80vh] object-contain rounded-md shadow-[0_0_30px_rgba(180,83,9,0.2)] cursor-default"
+                      onClick={(e) => e.stopPropagation()} 
+                    />
+                    
+                    {/* Botão pra fechar o modal */}
+                    <button 
+                      className="mt-8 text-neutral-400 hover:text-amber-500 font-bold uppercase tracking-widest text-sm md:text-base transition-colors font-['Cinzel'] drop-shadow-md"
+                      onClick={() => setModalAberto(false)}
+                    >
+                      [ Retornar ]
+                    </button>
                   </div>
                 )}
               </>
