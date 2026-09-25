@@ -14,7 +14,7 @@ function App() {
 
   const [boss, setBoss] = useState<Boss | null>(null);
   const [loading, setLoading] = useState(false);
-  const [busca, setBusca] = useState('Malenia'); //Boss inicial padrão
+  const [busca, setBusca] = useState(''); //Boss inicial padrão
   const [sugestoes, setSugestoes] = useState<Boss[]>([]); //Sugestões enquando o usuário digita
   const [modalAberto, setModalAberto] = useState(false);  
 
@@ -30,9 +30,6 @@ function App() {
       .then(dados => {
         if (dados.data) {
           setGaleriaChefes(dados.data);
-          // Deixa a Malenia (ou o primeiro da lista) selecionada por padrão se existir
-          const chefeInicial = dados.data.find((b: Boss) => b.name.toLowerCase().includes('malenia')) || dados.data[0];
-          setBoss(chefeInicial);
         }
         setCarregandoGaleria(false);
       })
@@ -65,6 +62,7 @@ function App() {
   const buscarChefeExato = (nome: string) => {
     setLoading(true);
     setSugestoes([]); // Esconde as sugestões
+    setBusca('');
 
     fetch(`https://eldenring.fanapis.com/api/bosses?name=${nome}`)
     .then(resposta => resposta.json())
@@ -95,12 +93,13 @@ function App() {
     <div className="relative min-h-screen bg-neutral-950 text-slate-300 flex flex-col items-center justify-center font-['Cormorant_Garamond'] p-4">
     
       <div 
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-20"
+        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-20 pointer-events-none"
         style={{ backgroundImage: "url('/fundo.png')" }}
       />
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center gap-8">
-        <div className="border border-amber-900/50 bg-neutral-950/80 p-6 md:p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] text-center w-full backdrop-blur-sm">        
-          <h1 className="text-5xl text-amber-500 mb-4 tracking-widest uppercase dropshadow-md font-['Cinzel']"> {/** tamanho - cor da letra - margin bottom - distanciamento das letras - letras maiusculas */}
+
+        <div className="border border-amber-900/50 bg-neutral-950/80 p-6 md:p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] text-center w-full backdrop-blur-sm">
+          <h1 className="text-4xl text-amber-500 mb-6 tracking-widest uppercase drop-shadow-md font-['Cinzel'] font-bold"> {/** tamanho - cor da letra - margin bottom - distanciamento das letras - letras maiusculas */}
             Elden Ring Wiki
           </h1>
           <p className="text-xl text-slate-400 italic mb-4"> {/** tamanho - cor - estilização */}
@@ -167,14 +166,15 @@ function App() {
             <div className="flex flex-col items-center text-left">
               {boss.image ? (
                 <>
+                <div className="w-full flex justify-center mb-6">
                   <img 
                     src={boss.image} 
                     alt={boss.name} 
                     onClick={() => setModalAberto(true)}
                     title="Clique para ampliar"
-                    className="w-full h-80 object-cover object-top rounded-md border border-neutral-700 mb-6 shadow-lg cursor-pointer hover:opacity-90 transition-opacity" 
+                    className="w-48 h-48 object-cover object-top rounded-lg border-2 border-amber-900/60 shadow-lg cursor-pointer hover:scale-105 hover:border-amber-500 transition-all" 
                   />
-
+                </div>
                   {modalAberto && (
                     <div 
                       className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 backdrop-blur-md p-4 cursor-zoom-out"
@@ -274,6 +274,30 @@ function App() {
         </div>
 
       </div>
+      {modalAberto && boss && boss.image && (
+        <div 
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 backdrop-blur-md p-4 cursor-zoom-out"
+          onClick={() => setModalAberto(false)}
+        >
+          <p className="text-amber-500 mb-6 font-['Cinzel'] tracking-widest uppercase text-3xl md:text-4xl drop-shadow-[0_5px_5px_rgba(0,0,0,1)] text-center">
+            {boss.name}
+          </p>
+          
+          <img 
+            src={boss.image} 
+            alt={boss.name} 
+            className="max-w-[95vw] max-h-[80vh] object-contain rounded-md shadow-[0_0_30px_rgba(180,83,9,0.2)] cursor-default"
+            onClick={(e) => e.stopPropagation()} 
+          />
+          
+          <button 
+            className="mt-8 text-neutral-400 hover:text-amber-500 font-bold uppercase tracking-widest text-sm md:text-base transition-colors font-['Cinzel'] drop-shadow-md cursor-pointer"
+            onClick={() => setModalAberto(false)}
+          >
+            [ Retornar ]
+          </button>
+        </div>
+      )}
     </div>
   )
 }
