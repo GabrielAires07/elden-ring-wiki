@@ -93,7 +93,7 @@ function App() {
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               onFocus={(e) => e.target.select()} /*Seleciona o texto ao clicar*/
-              className="w-full bg-neutral-950 border border-neutral-700 text-neutral-300 px-4 py-2 rounded-md focus:outline-none focus:border-amber-700 transition-colors"
+              className="w-full bg-neutral-950 border border-neutral-700 text-neutral-300 px-4 py-2 pr-10 rounded-md focus:outline-none focus:border-amber-700 transition-colors"
             />
 
             {busca && (
@@ -114,7 +114,7 @@ function App() {
                   <li 
                     key={sugestao.id}
                     onClick={() => buscarChefeExato(sugestao.name)}
-                    className="px-4 py-3 border-b border-neutral-800 last:border-0 hover:bg-neutral-800 cursor-pointer transition-colors text-sm text-neutral-300"
+                    className="px-4 py-3 border-b border-neutral-800 last:border-0 hover:bg-neutral-800 cursor-pointer transition-colors text-sm text-amber-500 hover:text-amber-400"
                   >
                     {sugestao.name}
                   </li>
