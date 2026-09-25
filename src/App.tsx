@@ -15,6 +15,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [busca, setBusca] = useState('Malenia'); //Boss inicial padrão
   const [sugestoes, setSugestoes] = useState<Boss[]>([]); //Sugestões enquando o usuário digita
+  const [modalAberto, setModalAberto] = useState(false);  
 
   // Busca inicial 
   useEffect(() => {
@@ -140,19 +141,49 @@ function App() {
         {/* Resultado da Pesquisa */}
         {loading ? (
           <p className="text-xl text-amber-600/70 italic animate-pulse py-10">
-            Buscando nos arquivos da Térvore...
+            Buscando dados da Térvore...
           </p>
         ) : boss ? (
           <div className="flex flex-col items-center animate-fade-in text-left">
-            {/* Caso não tenha a imagem do Boss nos dados da API */}
             {boss.image ? (
-              <img 
-                src={boss.image} 
-                alt={boss.name} 
-                className="w-full h-64 object-cover object-top rounded-md border border-neutral-700 mb-4 shadow-lg" 
-              />
+              <>
+                {/* Imagem padrão do card (Agora clicável) */}
+                <img 
+                  src={boss.image} 
+                  alt={boss.name} 
+                  onClick={() => setModalAberto(true)}
+                  title="Clique para ampliar"
+                  className="w-full h-64 object-cover object-top rounded-md border border-neutral-700 mb-4 shadow-lg cursor-pointer hover:opacity-80 transition-opacity" 
+                />
+
+                {/* O modal com a imagem expandida */}
+                {modalAberto && (
+                  <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 cursor-zoom-out"
+                    onClick={() => setModalAberto(false)} // Clicar fora fecha a imagem
+                  >
+                    <div className="relative max-w-4xl w-full flex flex-col items-center">
+                      <p className="text-amber-500 mb-4 font-['Cinzel'] tracking-widest uppercase">
+                        {boss.name}
+                      </p>
+                      <img 
+                        src={boss.image} 
+                        alt={boss.name} 
+                        className="w-full h-auto max-h-[80vh] object-contain rounded-lg border border-amber-900/50 shadow-[0_0_50px_rgba(180,83,9,0.3)] cursor-default"
+                        onClick={(e) => e.stopPropagation()} // Impede que o clique na própria imagem feche o modal
+                      />
+                      <button 
+                        className="mt-6 text-neutral-400 hover:text-white uppercase tracking-widest text-sm transition-colors"
+                        onClick={() => setModalAberto(false)}
+                      >
+                        [ Fechar ]
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
-              <div className="w-full h-32 bg-neutral-950 border border-neutral-800 rounded-md flex items-center justify-center mb-4 text-neutral-600 italic text-sm">
+              <div className="w-full h-32 bg-neutral-900 border border-neutral-800 rounded-md flex items-center justify-center mb-4 text-neutral-600 italic text-sm">
                 Nenhuma imagem registrada.
               </div>
             )}
