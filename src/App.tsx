@@ -75,8 +75,14 @@ function App() {
 
  
   return (
-    <div className="min-h-screen bg-neutral-950 text-slate-300 flex flex-col items-center justify-center font-['Cormorant_Garamond']"> {/** min-h-screen(min-height) = altura minima */}
-      <div className="border border-amber-900/50 bg-neutral-900/30 p-12 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] text-center"> {/** borda - cor da borda - cor de fundo - tamanho letra - bordas arredondadas - sombra - alinhamento de texto */}
+    <div className="relative min-h-screen bg-neutral-950 text-slate-300 flex flex-col items-center justify-center font-['Cormorant_Garamond'] p-4">
+    
+      <div 
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-20"
+        style={{ backgroundImage: "url('/fundo.png')" }}
+      />
+
+      <div className="relative z-10 border border-amber-900/50 bg-neutral-950/70 p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] text-center max-w-lg w-full backdrop-blur-sm"> 
         <h1 className="text-5xl text-amber-500 mb-4 tracking-widest uppercase dropshadow-md font-['Cinzel']"> {/** tamanho - cor da letra - margin bottom - distanciamento das letras - letras maiusculas */}
           Elden Ring Wiki
         </h1>
