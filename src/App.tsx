@@ -15,35 +15,62 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [busca, setBusca] = useState('Malenia'); //Boss inicial padrão
 
-  //Função pra buscar o Boss pelo nome
-  const buscarBoss = (nome: string) => {
+  const [sugestoes, setSugestoes] = useState<Boss[]>([]); //Sugestões enquando o usuário digita
+
+  // Busca inicial 
+  useEffect(() => {
+    buscarChefeExato('Malenia');
+  }, []);
+
+  
+  useEffect(() => {
+    // Se o nome for muito curto, ou for exatamente o nome do chefe atual, não busca sugestões
+    if (busca.length < 2 || (boss && boss.name.toLowerCase() === busca.toLowerCase())) {
+      setSugestoes([]);
+      return;
+    }
+
+    //Só faz a busca se o usuário parar de digitar por 300ms
+    const delay = setTimeout(() => {
+      fetch(`https://eldenring.fanapis.com/api/bosses?name=${busca}`)
+        .then(resposta => resposta.json())
+        .then(dados => {
+          if (dados.data) {
+            setSugestoes(dados.data.slice(0, 5)); // 5 Sugestões no máximo
+          }
+        })
+        .catch(() => setSugestoes([]));
+    }, 300); //Tempo de ms
+
+    
+    return () => clearTimeout(delay);
+  }, [busca, boss]);
+
+  const buscarChefeExato = (nome: string) => {
     setLoading(true);
+    setSugestoes([]); // Esconde as sugestões
+
     fetch(`https://eldenring.fanapis.com/api/bosses?name=${nome}`)
     .then(resposta => resposta.json())
     .then(dados => {
       if (dados.data && dados.data.length > 0) { //Se a API retornar os dados, pegamos o primeiro da lista. Se não, deixamos vazio
         setBoss(dados.data[0]);
+        setBusca(dados.data[0].name); //Corrige o texto para o nome certo
       } else {
         setBoss(null);
       }
       setLoading(false);
     })
-    .catch(erro => {
-      console.error("Erro ao carregar dados:", erro);
+    .catch(() => {
+      setBoss(null);
       setLoading(false);
     });
   };
 
-  //Deixando a Malenia como primeiro boss assim que a tela abre
-  useEffect(() => {
-    buscarBoss('Malenia');
-  }, []);
-
-  //O que acontece assim que clicar no botão de pesquisar
   const pesquisar = (e: React.FormEvent) => {
-    e.preventDefault(); //Impedindo a página de recarregar
+    e.preventDefault();
     if (busca.trim() !== '') {
-      buscarBoss(busca);
+      buscarChefeExato(busca);
     }
   };
 
@@ -59,19 +86,37 @@ function App() {
         </p>
 
         {/** Barra de Pesquisa */}
-        <form onSubmit={pesquisar} className="flex gap-2 mb-6">
-          <input 
-          type = "text"
-          placeholder = "Nome do Boss (ex: Radahn, Godrick, ...)"
-          value = {busca}
-          onChange = {(e) => setBusca(e.target.value)}
-          className = "flex-1 bg-neutral-950 border border-neutral-700 text-neutral-300 px-4 py-2 rounded-md focus:outline-none focus:border-amber-700 transition-colors" 
-          />
-          <button
-          type = "submit"
-          className="bg-amber-900 hover:bg-amber-800 text-amber-100 px-4 py-2 rounded-md transition-colors font-bold uppercase text-sm cursor-pointer"
+        <form onSubmit={pesquisar} className="relative flex gap-2 mb-6">
+          <div className="flex-1 relative">
+            <input 
+              type="text" 
+              placeholder="Nome do chefe (ex: Radahn, Godrick...)"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="w-full bg-neutral-950 border border-neutral-700 text-neutral-300 px-4 py-2 rounded-md focus:outline-none focus:border-amber-700 transition-colors"
+            />
+            
+            {/* Lista de Sugestões */}
+            {sugestoes.length > 0 && (
+              <ul className="absolute top-full left-0 w-full mt-1 bg-neutral-950 border border-amber-900/50 rounded-md shadow-2xl z-10 max-h-48 overflow-y-auto text-left">
+                {sugestoes.map((sugestao) => (
+                  <li 
+                    key={sugestao.id}
+                    onClick={() => buscarChefeExato(sugestao.name)}
+                    className="px-4 py-3 border-b border-neutral-800 last:border-0 hover:bg-neutral-800 cursor-pointer transition-colors text-sm text-neutral-300"
+                  >
+                    {sugestao.name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <button 
+            type="submit" 
+            className="bg-amber-900 hover:bg-amber-800 text-amber-100 px-4 py-2 rounded-md transition-colors font-bold uppercase text-sm cursor-pointer"
           >
-          Buscar  
+            Buscar
           </button>
         </form>
 
