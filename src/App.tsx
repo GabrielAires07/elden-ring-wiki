@@ -14,7 +14,6 @@ function App() {
   const [boss, setBoss] = useState<Boss | null>(null);
   const [loading, setLoading] = useState(false);
   const [busca, setBusca] = useState('Malenia'); //Boss inicial padrão
-
   const [sugestoes, setSugestoes] = useState<Boss[]>([]); //Sugestões enquando o usuário digita
 
   // Busca inicial 
@@ -87,14 +86,26 @@ function App() {
 
         {/** Barra de Pesquisa */}
         <form onSubmit={pesquisar} className="relative flex gap-2 mb-6">
-          <div className="flex-1 relative">
+          <div className="flex-1 relative flex items-center">
             <input 
               type="text" 
               placeholder="Nome do chefe (ex: Radahn, Godrick...)"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
+              onFocus={(e) => e.target.select()} /*Seleciona o texto ao clicar*/
               className="w-full bg-neutral-950 border border-neutral-700 text-neutral-300 px-4 py-2 rounded-md focus:outline-none focus:border-amber-700 transition-colors"
             />
+
+            {busca && (
+              <button
+              type="button"
+              onClick={() => setBusca('')}
+              className="absolute right-3 text-neutral-500 hover:text-amber-500 font-bold transition-colors"
+              title="Limpar Busca"            
+              >
+                ✕
+              </button>
+            )}
             
             {/* Lista de Sugestões */}
             {sugestoes.length > 0 && (
