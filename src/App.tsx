@@ -38,7 +38,7 @@ function App() {
           Carregando dados da Térvore...
         </p>
         ) : boss ? (
-          <div className="">
+          <div className="flex flex-col items-center">
             {boss.image && (
               <img 
               src = {boss.image}
