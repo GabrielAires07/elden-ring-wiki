@@ -98,7 +98,7 @@ function App() {
       />
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center gap-8">
 
-        <div className="border border-amber-900/50 bg-neutral-950/80 p-6 md:p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] text-center w-full backdrop-blur-sm">
+        <div className="relative z-50 border border-amber-900/50 bg-neutral-950/80 p-6 md:p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] text-center w-full backdrop-blur-sm">
           <h1 className="text-4xl text-amber-500 mb-6 tracking-widest uppercase drop-shadow-md font-['Cinzel'] font-bold"> {/** tamanho - cor da letra - margin bottom - distanciamento das letras - letras maiusculas */}
             Elden Ring Wiki
           </h1>
@@ -235,7 +235,7 @@ function App() {
         ) : null}
 
         {/* Galeria Inicial */}
-        <div className="border border-amber-900/50 bg-neutral-950/80 p-6 md:p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] w-full backdrop-blur-sm text-center">
+        <div className="relative z-10 border border-amber-900/50 bg-neutral-950/80 p-6 md:p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] w-full backdrop-blur-sm text-center">
           <h3 className="text-xl text-amber-500 mb-6 tracking-widest uppercase font-['Cinzel'] font-bold">
             Monstros da Térvore
           </h3>
