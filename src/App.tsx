@@ -131,25 +131,45 @@ function App() {
       .catch(() => setCarregandoTodos(false));
   };
 
+
+
   const itensProcessados = useMemo(() => {
     let lista = [...todosItens];
 
-    // Filtrar por nome
+    // 1. Filtrar pelo nome digitado
     if (filtro.trim() !== '') {
       lista = lista.filter(item => item.name.toLowerCase().includes(filtro.toLowerCase()));
     }
 
-    // Ordenar
-    lista.sort((a, b) => {
-      if (ordemAcervo === 'A-Z') return a.name.localeCompare(b.name);
-      if (ordemAcervo === 'Z-A') return b.name.localeCompare(a.name);
+    if (ordemAcervo.startsWith('DMG_')) {
+      const tipoDano = ordemAcervo.replace('DMG_', ''); // Ex: "Phy", "Mag", "Fire"
       
-      // Ordenações por peso
-      if (ordemAcervo === 'LEVE') return (a.weight || 0) - (b.weight || 0);
-      if (ordemAcervo === 'PESADO') return (b.weight || 0) - (a.weight || 0);
+      const obterValorDano = (item: ItemAPI) => {
+        if (!item.attack) return 0;
+        const atributo = item.attack.find(a => a.name === tipoDano);
+        if (!atributo) return 0;
+        const num = parseInt(atributo.amount.toString(), 10);
+        return isNaN(num) ? 0 : num;
+      };
 
-      return 0;
-    });
+      lista = lista.filter(item => obterValorDano(item) > 0);
+
+      lista.sort((a, b) => obterValorDano(b) - obterValorDano(a));
+
+    } else {
+
+    // Ordenar
+      lista.sort((a, b) => {
+        if (ordemAcervo === 'A-Z') return a.name.localeCompare(b.name);
+        if (ordemAcervo === 'Z-A') return b.name.localeCompare(a.name);
+        
+        // Ordenações por peso
+        if (ordemAcervo === 'LEVE') return (a.weight || 0) - (b.weight || 0);
+        if (ordemAcervo === 'PESADO') return (b.weight || 0) - (a.weight || 0);
+
+        return 0;
+      });
+    }
 
     return lista;
   }, [todosItens, filtro, ordemAcervo]);
@@ -407,7 +427,7 @@ function App() {
             </button>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-4 mb-6 px-2">
             <div className="relative flex-1 flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 w-5 h-5 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -426,15 +446,29 @@ function App() {
               onChange={(e) => setOrdemAcervo(e.target.value)}
               className="bg-neutral-900 border border-neutral-700 text-neutral-300 px-4 py-2 rounded-md focus:outline-none focus:border-amber-700 font-['Cinzel']"
             >
-              <option value="A-Z">Ordem Alfabética (A-Z)</option>
-              <option value="Z-A">Ordem Alfabética (Z-A)</option>
-              
+              <optgroup label="Básico">
+                <option value="A-Z">Ordem Alfabética (A-Z)</option>
+                <option value="Z-A">Ordem Alfabética (Z-A)</option>
+              </optgroup>
+
                   {(categoriaAtual === 'bosses' || categoriaAtual === 'classes')};
                   {(categoriaAtual === 'weapons' || categoriaAtual === 'armors') && (
-                <>
-                  <option value="LEVE">Mais Leves (Peso Menor)</option>
-                  <option value="PESADO">Mais Pesados (Peso Maior)</option>
-                </>
+              
+                    <optgroup label="Peso">
+                      <option value="LEVE">Mais Leves</option>
+                      <option value="PESADO">Mais Pesados</option>
+                    </optgroup>
+                  )}
+              {/* OPÇÕES EXCLUSIVAS DE DANO PARA ARMAS */}
+              {categoriaAtual === 'weapons' && (
+                <optgroup label="Maior Dano Específico">
+                  <option value="DMG_Phy">Dano Físico (Phy)</option>
+                  <option value="DMG_Mag">Dano Mágico (Mag)</option>
+                  <option value="DMG_Fire">Dano de Fogo (Fire)</option>
+                  <option value="DMG_Ligt">Dano de Raio (Ligt)</option>
+                  <option value="DMG_Holy">Dano Sagrado (Holy)</option>
+                  <option value="DMG_Crit">Dano Crítico (Crit)</option>
+                </optgroup>
               )}
             </select>
           </div>
@@ -467,7 +501,7 @@ function App() {
 
                     {/* Exibe o peso no card se for de arma/armadura */}
                     {(categoriaAtual === 'weapons' || categoriaAtual === 'armors') && item.weight !== undefined && (
-                      <span className="absolute top-2 right-2 bg-neutral-950/80 text-neutral-400 text-[10px] px-2 py-1 rounded border border-neutral-800">
+                      <span className="absolute top-2 right-2 bg-neutral-950/90 text-neutral-300 text-xs px-2 py-1 rounded border border-neutral-700 shadow-sm">
                         {item.weight} kg
                       </span>
                     )}
