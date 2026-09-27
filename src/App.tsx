@@ -500,40 +500,75 @@ function App() {
             </select>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+<div className="flex-1 overflow-y-auto px-2 custom-scrollbar">
             {carregandoTodos ? (
               <p className="text-xl text-amber-600/70 italic animate-pulse text-center mt-20">Explorando as profundezas da Térvore...</p>
             ) : itensProcessados.length === 0 ? (
-              <p className="text-xl text-neutral-600 italic text-center mt-20">Nenhum item identificado...</p>
+              <p className="text-xl text-neutral-600 italic text-center mt-20">Nenhum item atende a estes critérios...</p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 p-3 pb-10">
-                {itensProcessados.map((item) => (
-                  <div 
-                    key={item.id}
-                    onClick={() => {
-                      setItemSelecionado(item);
-                      setModalVerMaisAberto(false);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="group bg-neutral-900 border border-neutral-800 hover:border-amber-700/60 rounded-lg p-3 cursor-pointer transition-all hover:scale-105 flex flex-col items-center shadow-md justify-between relative"
-                  >
-                    {item.image ? (
-                      <img src={item.image} alt={item.name} className="w-full h-32 object-contain object-center rounded-md mb-3 filter grayscale group-hover:grayscale-0 transition-all bg-neutral-950/50 p-2" />
-                    ) : (
-                      <div className="w-full h-32 bg-neutral-950 rounded-md mb-3 flex items-center justify-center text-xs text-neutral-600 italic">Sem imagem</div>
-                    )}
-                    <p className="text-xs text-amber-500/90 group-hover:text-amber-400 font-['Cinzel'] w-full text-center truncate px-1">
-                      {item.name}
-                    </p>
+                {itensProcessados.map((item) => {
+                  
+                  // Identifica se um atributo específico foi selecionado no filtro
+                  const padraoEspecial = ordemAcervo.startsWith('DMG_') || ordemAcervo.startsWith('NEG_') || ordemAcervo.startsWith('RES_');
+                  const prefixoAtual = padraoEspecial ? ordemAcervo.substring(0, 4) : '';
+                  const tipoAtributoAtual = padraoEspecial ? ordemAcervo.substring(4) : '';
+                  
+                  let valorAtributo = 0;
+                  if (padraoEspecial) {
+                    const listaRef = prefixoAtual === 'DMG_' ? item.attack : prefixoAtual === 'NEG_' ? item.dmgNegation : item.resistance;
+                    valorAtributo = parseFloat(listaRef?.find(a => a.name === tipoAtributoAtual)?.amount?.toString() || '0');
+                  }
 
-                    {/* Exibe o peso no card se for de arma/armadura */}
-                    {(categoriaAtual === 'weapons' || categoriaAtual === 'armors') && item.weight !== undefined && (
-                      <span className="absolute top-2 right-2 bg-neutral-950/90 text-neutral-300 text-xs px-2 py-1 rounded border border-neutral-700 shadow-sm">
-                        {item.weight} kg
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  return (
+                    <div 
+                      key={item.id}
+                      onClick={() => {
+                        setItemSelecionado(item);
+                        setModalVerMaisAberto(false);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="group bg-neutral-900 border border-neutral-800 hover:border-amber-700/60 rounded-lg p-3 cursor-pointer transition-all hover:scale-105 flex flex-col items-center shadow-md justify-between relative"
+                    >
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} className="w-full h-32 object-contain object-center rounded-md mb-3 filter grayscale group-hover:grayscale-0 transition-all bg-neutral-950/50 p-2" />
+                      ) : (
+                        <div className="w-full h-32 bg-neutral-950 rounded-md mb-3 flex items-center justify-center text-xs text-neutral-600 italic">Sem imagem</div>
+                      )}
+                      <p className="text-xs text-amber-500/90 group-hover:text-amber-400 font-['Cinzel'] w-full text-center truncate px-1">
+                        {item.name}
+                      </p>
+
+                      {/* Peso Padrão */}
+                      {!padraoEspecial && (categoriaAtual === 'weapons' || categoriaAtual === 'armors') && item.weight !== undefined && (
+                        <span className="absolute top-2 right-2 bg-neutral-950/90 text-neutral-300 text-xs font-medium px-2 py-1 rounded border border-neutral-700 shadow-sm">
+                          {item.weight} kg
+                        </span>
+                      )}
+
+                      {/* Dano das Armas (Vermelho*/}
+                      {prefixoAtual === 'DMG_' && (
+                        <span className="absolute top-2 left-2 bg-amber-900/95 text-amber-100 text-xs font-bold px-2 py-1 rounded border border-amber-700 shadow-md">
+                          {tipoAtributoAtual}: {valorAtributo}
+                        </span>
+                      )}
+
+                      {/* Negação de dano das Armaduras (Azul) */}
+                      {prefixoAtual === 'NEG_' && (
+                        <span className="absolute top-2 left-2 bg-blue-900/95 text-blue-100 text-xs font-bold px-2 py-1 rounded border border-blue-700 shadow-md">
+                          {tipoAtributoAtual}: {valorAtributo}
+                        </span>
+                      )}
+
+                      {/* Resistências Armaduras (Verde) */}
+                      {prefixoAtual === 'RES_' && (
+                        <span className="absolute top-2 left-2 bg-emerald-900/95 text-emerald-100 text-xs font-bold px-2 py-1 rounded border border-emerald-700 shadow-md">
+                          {tipoAtributoAtual}: {valorAtributo}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
