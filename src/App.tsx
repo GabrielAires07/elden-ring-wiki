@@ -296,13 +296,16 @@ function App() {
 
           <form onSubmit={pesquisar} className="relative flex gap-2">
             <div className="flex-1 relative flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-4 w-5 h-5 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
               <input 
                 type="text" 
                 placeholder={`Pesquisar em ${ABAS.find(a => a.id === categoriaAtual)?.titulo}...`}
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 onFocus={(e) => e.target.select()}
-                className="w-full bg-neutral-900 border border-neutral-700 text-neutral-300 px-4 py-3 pr-10 rounded-md focus:outline-none focus:border-amber-700 transition-colors"
+                className="w-full bg-neutral-900 border border-neutral-700 text-neutral-300 pl-11 py-3 pr-10 rounded-md focus:outline-none focus:border-amber-700 transition-colors"
               />
               {busca && (
                 <button type="button" onClick={() => setBusca('')} className="absolute right-3 text-neutral-500 hover:text-amber-500 font-bold transition-colors">✕</button>
@@ -405,13 +408,18 @@ function App() {
           </div>
 
           <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <input 
-              type="text" 
-              placeholder="🔍 Filtrar nomes nesta lista..."
-              value={filtro}
-              onChange={(e) => setFiltro(e.target.value)}
-              className="flex-1 bg-neutral-900 border border-neutral-700 text-neutral-300 px-4 py-2 rounded-md focus:outline-none focus:border-amber-700 transition-colors"
-            />
+            <div className="relative flex-1 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 w-5 h-5 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input 
+                type="text" 
+                placeholder="Filtrar nomes nesta lista"
+                value={filtro}
+                onChange={(e) => setFiltro(e.target.value)}
+                className="w-full bg-neutral-900 border border-neutral-700 text-neutral-300 pl-10 pr-4 py-2 rounded-md focus:outline-none focus:border-amber-700 transition-colors"
+              />
+            </div>
             
             <select 
               value={ordemAcervo} 
@@ -437,7 +445,7 @@ function App() {
             ) : itensProcessados.length === 0 ? (
               <p className="text-xl text-neutral-600 italic text-center mt-20">Nenhum item identificado...</p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-10">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 p-3 pb-10">
                 {itensProcessados.map((item) => (
                   <div 
                     key={item.id}
