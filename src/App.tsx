@@ -47,9 +47,12 @@ function App() {
   const [modalVerMaisAberto, setModalVerMaisAberto] = useState(false);
   const [todosItens, setTodosItens] = useState<ItemAPI[]>([]);
   const [carregandoTodos, setCarregandoTodos] = useState(false);
-
   const [filtro, setFiltro] = useState('');
   const [ordemAcervo, setOrdemAcervo] = useState('A-Z');
+
+  const [paginaAcervo, setPaginaAcervo] = useState(0);
+  const [temMaisItens, setTemMaisItens] = useState(true);
+  const [carregandoMais, setCarregandoMais] = useState(false);
 
   useEffect(() => {
     setCarregandoGaleria(true);
@@ -119,19 +122,44 @@ function App() {
     setCarregandoTodos(true);
     setFiltro(''); // Reseta o filtro ao abrir
     setOrdemAcervo('A-Z'); // Reseta a ordem ao abrir
+    setPaginaAcervo(0);
+    setTemMaisItens(true);
     
-    fetch(`https://eldenring.fanapis.com/api/${categoriaAtual}?limit=100`)
+    fetch(`https://eldenring.fanapis.com/api/${categoriaAtual}?limit=100&page=0`)
       .then(res => res.json())
       .then(dados => {
         if (dados.data) {
           setTodosItens(dados.data);
+          // Se a API trouxer menos de 100, significa que não tem mais páginas
+          if (dados.data.length < 100) setTemMaisItens(false);
         }
         setCarregandoTodos(false);
       })
       .catch(() => setCarregandoTodos(false));
   };
 
-
+  const carregarMaisItens = () => {
+    setCarregandoMais(true);
+    const proximaPagina = paginaAcervo + 1;
+    
+    fetch(`https://eldenring.fanapis.com/api/${categoriaAtual}?limit=100&page=${proximaPagina}`)
+      .then(res => res.json())
+      .then(dados => {
+        if (dados.data && dados.data.length > 0) {
+          setTodosItens(prev => [...prev, ...dados.data]);
+          setPaginaAcervo(proximaPagina);
+          
+          if (dados.data.length < 100) setTemMaisItens(false);
+        } else {
+          setTemMaisItens(false);
+        }
+        setCarregandoMais(false);
+      })
+      .catch(() => {
+        setCarregandoMais(false);
+        setTemMaisItens(false);
+      });
+  };
 
   const itensProcessados = useMemo(() => {
     let lista = [...todosItens];
@@ -140,12 +168,11 @@ function App() {
       lista = lista.filter(item => item.name.toLowerCase().includes(filtro.toLowerCase()));
     }
 
-    // Lógica Universal para Ataque, Negação ou Resistência
     const padraoEspecial = ordemAcervo.startsWith('DMG_') || ordemAcervo.startsWith('NEG_') || ordemAcervo.startsWith('RES_');
     
     if (padraoEspecial) {
-      const prefixo = ordemAcervo.substring(0, 4); // "DMG_", "NEG_", ou "RES_"
-      const tipoAtributo = ordemAcervo.substring(4); // Ex: "Phy", "Fire", "Immunity"
+      const prefixo = ordemAcervo.substring(0, 4); 
+      const tipoAtributo = ordemAcervo.substring(4); 
       
       const obterValorExato = (item: ItemAPI) => {
         let listaAlvo: Atributo[] | undefined = [];
@@ -157,12 +184,10 @@ function App() {
         const atributo = listaAlvo.find(a => a.name === tipoAtributo);
         if (!atributo) return 0;
         
-        // Usamos parseFloat para não quebrar a ordem das armaduras (ex: 4.5 vs 4.8)
         const num = parseFloat(atributo.amount.toString());
         return isNaN(num) ? 0 : num;
       };
 
-      // Mantém apenas quem tem o atributo > 0 e ordena do maior para o menor
       lista = lista.filter(item => obterValorExato(item) > 0);
       lista.sort((a, b) => obterValorExato(b) - obterValorExato(a));
 
@@ -290,7 +315,7 @@ function App() {
 
   return (
     <div className="relative min-h-screen bg-neutral-950 text-slate-300 flex flex-col items-center justify-start font-['Cormorant_Garamond'] p-4 md:p-8">
-      <div className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-20 pointer-events-none" style={{ backgroundImage: "url('/fundo.jpg')" }} />
+      <div className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-20 pointer-events-none" style={{ backgroundImage: "url('/fundo.png')" }} />
 
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center gap-6">
         
@@ -500,81 +525,89 @@ function App() {
             </select>
           </div>
 
-<div className="flex-1 overflow-y-auto px-2 custom-scrollbar">
-            {carregandoTodos ? (
-              <p className="text-xl text-amber-600/70 italic animate-pulse text-center mt-20">Explorando as profundezas da Térvore...</p>
+          <div className="flex-1 overflow-y-auto px-2 custom-scrollbar">
+            {carregandoTodos && paginaAcervo === 0 ? (
+              <p className="text-xl text-amber-600/70 italic animate-pulse text-center mt-20">Explorando as profundezas da Térvore</p>
             ) : itensProcessados.length === 0 ? (
               <p className="text-xl text-neutral-600 italic text-center mt-20">Nenhum item atende a estes critérios...</p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 p-3 pb-10">
-                {itensProcessados.map((item) => {
-                  
-                  // Identifica se um atributo específico foi selecionado no filtro
-                  const padraoEspecial = ordemAcervo.startsWith('DMG_') || ordemAcervo.startsWith('NEG_') || ordemAcervo.startsWith('RES_');
-                  const prefixoAtual = padraoEspecial ? ordemAcervo.substring(0, 4) : '';
-                  const tipoAtributoAtual = padraoEspecial ? ordemAcervo.substring(4) : '';
-                  
-                  let valorAtributo = 0;
-                  if (padraoEspecial) {
-                    const listaRef = prefixoAtual === 'DMG_' ? item.attack : prefixoAtual === 'NEG_' ? item.dmgNegation : item.resistance;
-                    valorAtributo = parseFloat(listaRef?.find(a => a.name === tipoAtributoAtual)?.amount?.toString() || '0');
-                  }
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 p-3 pb-6">
+                  {itensProcessados.map((item) => {
+                    const padraoEspecial = ordemAcervo.startsWith('DMG_') || ordemAcervo.startsWith('NEG_') || ordemAcervo.startsWith('RES_');
+                    const prefixoAtual = padraoEspecial ? ordemAcervo.substring(0, 4) : '';
+                    const tipoAtributoAtual = padraoEspecial ? ordemAcervo.substring(4) : '';
+                    
+                    let valorAtributo = 0;
+                    if (padraoEspecial) {
+                      const listaRef = prefixoAtual === 'DMG_' ? item.attack : prefixoAtual === 'NEG_' ? item.dmgNegation : item.resistance;
+                      valorAtributo = parseFloat(listaRef?.find(a => a.name === tipoAtributoAtual)?.amount?.toString() || '0');
+                    }
 
-                  return (
-                    <div 
-                      key={item.id}
-                      onClick={() => {
-                        setItemSelecionado(item);
-                        setModalVerMaisAberto(false);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="group bg-neutral-900 border border-neutral-800 hover:border-amber-700/60 rounded-lg p-3 cursor-pointer transition-all hover:scale-105 flex flex-col items-center shadow-md justify-between relative"
+                    return (
+                      <div 
+                        key={`${item.id}-${Math.random()}`} // Ajuste p/ chaves duplicadas da API se houver
+                        onClick={() => {
+                          setItemSelecionado(item);
+                          setModalVerMaisAberto(false);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="group bg-neutral-900 border border-neutral-800 hover:border-amber-700/60 rounded-lg p-3 cursor-pointer transition-all hover:scale-105 flex flex-col items-center shadow-md justify-between relative"
+                      >
+                        {item.image ? (
+                          <img src={item.image} alt={item.name} className="w-full h-32 object-contain object-center rounded-md mb-3 filter grayscale group-hover:grayscale-0 transition-all bg-neutral-950/50 p-2" />
+                        ) : (
+                          <div className="w-full h-32 bg-neutral-950 rounded-md mb-3 flex items-center justify-center text-xs text-neutral-600 italic">Sem imagem</div>
+                        )}
+                        <p className="text-xs text-amber-500/90 group-hover:text-amber-400 font-['Cinzel'] w-full text-center truncate px-1">
+                          {item.name}
+                        </p>
+
+                        {!padraoEspecial && (categoriaAtual === 'weapons' || categoriaAtual === 'armors') && item.weight !== undefined && (
+                          <span className="absolute top-2 right-2 bg-neutral-950/90 text-neutral-300 text-xs font-medium px-2 py-1 rounded border border-neutral-700 shadow-sm">
+                            {item.weight} kg
+                          </span>
+                        )}
+
+                        {prefixoAtual === 'DMG_' && (
+                          <span className="absolute top-2 left-2 bg-amber-900/95 text-amber-100 text-xs font-bold px-2 py-1 rounded border border-amber-700 shadow-md">
+                            {tipoAtributoAtual}: {valorAtributo}
+                          </span>
+                        )}
+
+                        {prefixoAtual === 'NEG_' && (
+                          <span className="absolute top-2 left-2 bg-blue-900/95 text-blue-100 text-xs font-bold px-2 py-1 rounded border border-blue-700 shadow-md">
+                            {tipoAtributoAtual}: {valorAtributo}
+                          </span>
+                        )}
+
+                        {prefixoAtual === 'RES_' && (
+                          <span className="absolute top-2 left-2 bg-emerald-900/95 text-emerald-100 text-xs font-bold px-2 py-1 rounded border border-emerald-700 shadow-md">
+                            {tipoAtributoAtual}: {valorAtributo}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Botão de "Carregar Mais" dentro do Modal */}
+                {temMaisItens && (
+                  <div className="w-full flex justify-center pb-10">
+                    <button
+                      onClick={carregarMaisItens}
+                      disabled={carregandoMais}
+                      className="bg-amber-900/80 hover:bg-amber-800 border border-amber-700 text-amber-100 px-6 py-3 rounded-md transition-colors font-bold uppercase tracking-widest text-sm font-['Cinzel'] shadow-[0_0_15px_rgba(180,83,9,0.3)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
-                      {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-full h-32 object-contain object-center rounded-md mb-3 filter grayscale group-hover:grayscale-0 transition-all bg-neutral-950/50 p-2" />
-                      ) : (
-                        <div className="w-full h-32 bg-neutral-950 rounded-md mb-3 flex items-center justify-center text-xs text-neutral-600 italic">Sem imagem</div>
-                      )}
-                      <p className="text-xs text-amber-500/90 group-hover:text-amber-400 font-['Cinzel'] w-full text-center truncate px-1">
-                        {item.name}
-                      </p>
-
-                      {/* Peso Padrão */}
-                      {!padraoEspecial && (categoriaAtual === 'weapons' || categoriaAtual === 'armors') && item.weight !== undefined && (
-                        <span className="absolute top-2 right-2 bg-neutral-950/90 text-neutral-300 text-xs font-medium px-2 py-1 rounded border border-neutral-700 shadow-sm">
-                          {item.weight} kg
-                        </span>
-                      )}
-
-                      {/* Dano das Armas (Vermelho*/}
-                      {prefixoAtual === 'DMG_' && (
-                        <span className="absolute top-2 left-2 bg-amber-900/95 text-amber-100 text-xs font-bold px-2 py-1 rounded border border-amber-700 shadow-md">
-                          {tipoAtributoAtual}: {valorAtributo}
-                        </span>
-                      )}
-
-                      {/* Negação de dano das Armaduras (Azul) */}
-                      {prefixoAtual === 'NEG_' && (
-                        <span className="absolute top-2 left-2 bg-blue-900/95 text-blue-100 text-xs font-bold px-2 py-1 rounded border border-blue-700 shadow-md">
-                          {tipoAtributoAtual}: {valorAtributo}
-                        </span>
-                      )}
-
-                      {/* Resistências Armaduras (Verde) */}
-                      {prefixoAtual === 'RES_' && (
-                        <span className="absolute top-2 left-2 bg-emerald-900/95 text-emerald-100 text-xs font-bold px-2 py-1 rounded border border-emerald-700 shadow-md">
-                          {tipoAtributoAtual}: {valorAtributo}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                      {carregandoMais ? 'Buscando nos arquivos...' : 'Carregar Mais Pergaminhos'}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
       )}
-
     </div>
   )
 }
