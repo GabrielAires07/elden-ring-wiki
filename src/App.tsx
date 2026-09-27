@@ -23,7 +23,7 @@ function App() {
   const [categoriaAtual, setCategoriaAtual] = useState('bosses');
   const [itemSelecionado, setItemSelecionado] = useState<ItemAPI | null>(null);
   
-  const [termoBusca, setTermoBusca] = useState('');
+  const [busca, setBusca] = useState('');
   const [sugestoes, setSugestoes] = useState<ItemAPI[]>([]);
   const [modalAberto, setModalAberto] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,7 +38,7 @@ function App() {
   useEffect(() => {
     setCarregandoGaleria(true);
     setItemSelecionado(null);
-    setTermoBusca('');
+    setBusca('');
     setSugestoes([]);
 
     fetch(`https://eldenring.fanapis.com/api/${categoriaAtual}?limit=12`)
@@ -53,13 +53,13 @@ function App() {
   }, [categoriaAtual]);
 
   useEffect(() => {
-    if (termoBusca.length < 2 || (itemSelecionado && itemSelecionado.name.toLowerCase() === termoBusca.toLowerCase())) {
+    if (busca.length < 2 || (itemSelecionado && itemSelecionado.name.toLowerCase() === busca.toLowerCase())) {
       setSugestoes([]);
       return;
     }
 
     const delay = setTimeout(() => {
-      fetch(`https://eldenring.fanapis.com/api/${categoriaAtual}?name=${termoBusca}`)
+      fetch(`https://eldenring.fanapis.com/api/${categoriaAtual}?name=${busca}`)
         .then(res => res.json())
         .then(dados => {
           if (dados.data) {
@@ -70,12 +70,12 @@ function App() {
     }, 300);
 
     return () => clearTimeout(delay);
-  }, [termoBusca, itemSelecionado, categoriaAtual]);
+  }, [busca, itemSelecionado, categoriaAtual]);
 
   const buscarItemExato = (nome: string) => {
     setLoading(true);
     setSugestoes([]);
-    setTermoBusca('');
+    setBusca('');
     
     fetch(`https://eldenring.fanapis.com/api/${categoriaAtual}?name=${nome}`)
       .then(res => res.json())
@@ -95,7 +95,7 @@ function App() {
 
   const pesquisar = (e: React.FormEvent) => {
     e.preventDefault();
-    if (termoBusca.trim() !== '') buscarItemExato(termoBusca);
+    if (busca.trim() !== '') buscarItemExato(busca);
   };
 
   const abrirVerMais = () => {
@@ -173,11 +173,13 @@ function App() {
 
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center gap-6">
         
-        {/* HEADER E NAVEGAÇÃO */}
         <div className="border border-amber-900/50 bg-neutral-950/80 p-6 md:p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] text-center w-full backdrop-blur-sm">
-          <h1 className="text-4xl md:text-5xl text-amber-500 mb-8 tracking-widest uppercase drop-shadow-md font-['Cinzel'] font-bold">
-            Compêndio de Dark Fantasy
+          <h1 className="text-4xl md:text-5xl text-amber-500 mb-4 tracking-widest uppercase drop-shadow-md font-['Cinzel'] font-bold">
+            Elden Ring Wiki
           </h1>
+          <p className="text-xl text-slate-400 italic mb-4"> {/** tamanho - cor - estilização */}
+            De fã para fã!
+            </p>
 
           <div className="flex flex-wrap justify-center gap-2 mb-8">
             {ABAS.map((aba) => (
@@ -200,13 +202,13 @@ function App() {
               <input 
                 type="text" 
                 placeholder={`Pesquisar em ${ABAS.find(a => a.id === categoriaAtual)?.titulo}...`}
-                value={termoBusca}
-                onChange={(e) => setTermoBusca(e.target.value)}
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
                 onFocus={(e) => e.target.select()}
                 className="w-full bg-neutral-900 border border-neutral-700 text-neutral-300 px-4 py-3 pr-10 rounded-md focus:outline-none focus:border-amber-700 transition-colors"
               />
-              {termoBusca && (
-                <button type="button" onClick={() => setTermoBusca('')} className="absolute right-3 text-neutral-500 hover:text-amber-500 font-bold transition-colors">✕</button>
+              {busca && (
+                <button type="button" onClick={() => setBusca('')} className="absolute right-3 text-neutral-500 hover:text-amber-500 font-bold transition-colors">✕</button>
               )}
               {sugestoes.length > 0 && (
                 <ul className="absolute top-full left-0 w-full mt-1 bg-neutral-900 border border-amber-900/50 rounded-md shadow-2xl z-20 max-h-48 overflow-y-auto text-left">
@@ -284,7 +286,6 @@ function App() {
         </div>
       </div>
 
-      {/* MODAL GIGANTE DE IMAGEM */}
       {modalAberto && itemSelecionado && itemSelecionado.image && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 backdrop-blur-md p-4 cursor-zoom-out" onClick={() => setModalAberto(false)}>
           <p className="text-amber-500 mb-6 font-['Cinzel'] tracking-widest uppercase text-3xl md:text-4xl drop-shadow-[0_5px_5px_rgba(0,0,0,1)] text-center">{itemSelecionado.name}</p>
@@ -293,7 +294,6 @@ function App() {
         </div>
       )}
 
-      {/* MODAL DO ACERVO COMPLETO (VER MAIS) */}
       {modalVerMaisAberto && (
         <div className="fixed inset-0 z-50 flex flex-col bg-neutral-950/95 backdrop-blur-md p-4 md:p-10 animate-fade-in">
           
