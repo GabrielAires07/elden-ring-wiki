@@ -1,12 +1,24 @@
 import { useState, useEffect } from 'react';
 
+interface Atributo {
+  name: string;
+  amount: number | string;
+}
+
 interface ItemAPI {
   id: string;
   name: string;
   description: string;
   image: string | null;
-  healthPoints?: string; location?: string; drops?: string[];
-  weight?: number; attack?: any[]; defense?: any[]; category?: string;
+  healthPoints?: string; 
+  location?: string; 
+  drops?: string[];
+  weight?: number; 
+  category?: string;
+  attack?: Atributo[]; 
+  defense?: Atributo[]; 
+  dmgNegation?: Atributo[]; 
+  resistance?: Atributo[];
   affinity?: string; skill?: string;
   stats?: { [key: string]: string };
 }
@@ -113,7 +125,7 @@ function App() {
       .catch(() => setCarregandoTodos(false));
   };
 
-  const renderizarAtributosDinamicos = (item: ItemAPI) => {
+  const renderizarAtributos = (item: ItemAPI) => {
     switch (categoriaAtual) {
       case 'bosses':
         return (
@@ -146,20 +158,76 @@ function App() {
           </div>
         );
       case 'weapons':
+        return (
+          <>
+            <div className="flex justify-center gap-4 text-xs font-sans text-amber-500/80 mb-2 uppercase tracking-wider w-full">
+              <span>Categoria: {item.category || "Unknown"}</span>
+              <span>•</span>
+              <span>Peso: {item.weight || "0.0"}</span>
+            </div>
+            
+            {item.attack && item.attack.length > 0 && (
+              <div className="w-full border-t border-amber-900/30 pt-4 mt-4 text-left">
+                <p className="text-amber-600 font-['Cinzel'] font-bold text-xs uppercase tracking-widest mb-3 text-center">
+                  Poder de Ataque
+                </p>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 text-center text-sm font-sans">
+                  {item.attack.map((atributo, idx) => (
+                    <div key={idx} className="bg-neutral-900 border border-neutral-800 p-2 rounded">
+                      <span className="text-neutral-500 text-[10px] uppercase tracking-wider block truncate" title={atributo.name}>{atributo.name}</span>
+                      <span className="text-amber-500 font-bold">{atributo.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        );
+
       case 'armors':
         return (
-          <div className="flex justify-center gap-4 text-xs font-sans text-amber-500/80 mb-6 uppercase tracking-wider w-full">
-            <span>Category: {item.category || "Unknown"}</span>
-            <span>•</span>
-            <span>Weight: {item.weight || "0.0"}</span>
-          </div>
+          <>
+            <div className="flex justify-center gap-4 text-xs font-sans text-amber-500/80 mb-2 uppercase tracking-wider w-full">
+              <span>Categoria: {item.category || "Unknown"}</span>
+              <span>•</span>
+              <span>Peso: {item.weight || "0.0"}</span>
+            </div>
+
+            {item.dmgNegation && item.dmgNegation.length > 0 && (
+              <div className="w-full border-t border-amber-900/30 pt-4 mt-4 text-left">
+                <p className="text-amber-600 font-['Cinzel'] font-bold text-xs uppercase tracking-widest mb-3 text-center">Negação de Dano</p>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 text-center text-sm font-sans">
+                  {item.dmgNegation.map((atributo, idx) => (
+                    <div key={idx} className="bg-neutral-900 border border-neutral-800 p-2 rounded">
+                      <span className="text-neutral-500 text-[10px] uppercase tracking-wider block truncate" title={atributo.name}>{atributo.name}</span>
+                      <span className="text-amber-500 font-bold">{atributo.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {item.resistance && item.resistance.length > 0 && (
+              <div className="w-full border-t border-amber-900/30 pt-4 mt-4 text-left">
+                <p className="text-amber-600 font-['Cinzel'] font-bold text-xs uppercase tracking-widest mb-3 text-center">Resistências</p>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 text-center text-sm font-sans">
+                  {item.resistance.map((atributo, idx) => (
+                    <div key={idx} className="bg-neutral-900 border border-neutral-800 p-2 rounded">
+                      <span className="text-neutral-500 text-[10px] uppercase tracking-wider block truncate" title={atributo.name}>{atributo.name}</span>
+                      <span className="text-amber-500 font-bold">{atributo.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         );
       case 'ashes':
         return (
           <div className="flex justify-center gap-4 text-xs font-sans text-amber-500/80 mb-6 uppercase tracking-wider w-full">
-            <span>Affinity: {item.affinity || "Standard"}</span>
+            <span>Afinidade: {item.affinity || "Standard"}</span>
             <span>•</span>
-            <span>Skill: {item.skill || "Unknown"}</span>
+            <span>Habilidade: {item.skill || "Unknown"}</span>
           </div>
         );
       default:
@@ -169,7 +237,7 @@ function App() {
 
   return (
     <div className="relative min-h-screen bg-neutral-950 text-slate-300 flex flex-col items-center justify-start font-['Cormorant_Garamond'] p-4 md:p-8">
-      <div className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-20 pointer-events-none" style={{ backgroundImage: "url('/fundo.jpg')" }} />
+      <div className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-20 pointer-events-none" style={{ backgroundImage: "url('/fundo.png')" }} />
 
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center gap-6">
         
@@ -226,7 +294,6 @@ function App() {
           </form>
         </div>
 
-        {/* PAINEL DE DETALHES */}
         {loading ? (
           <div className="border border-amber-900/50 bg-neutral-950/80 p-8 rounded-xl text-center w-full backdrop-blur-sm"><p className="text-xl text-amber-600/70 italic animate-pulse">Consultando os pergaminhos...</p></div>
         ) : itemSelecionado ? (
@@ -241,12 +308,12 @@ function App() {
               )}
               <h2 className="text-3xl md:text-4xl text-neutral-100 font-bold mb-4 w-full text-center font-['Cinzel']">{itemSelecionado.name}</h2>
               <p className="text-base md:text-lg text-neutral-400 text-justify leading-relaxed mb-2">{itemSelecionado.description || "No description available."}</p>
-              {renderizarAtributosDinamicos(itemSelecionado)}
+              {renderizarAtributos(itemSelecionado)}
             </div>
           </div>
         ) : null}
 
-        {/* GALERIA INICIAL */}
+        {/* Galeria Inicial */}
         <div className="border border-amber-900/50 bg-neutral-950/80 p-6 md:p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] w-full backdrop-blur-sm text-center">
           <h3 className="text-xl text-amber-500 mb-6 tracking-widest uppercase font-['Cinzel'] font-bold">
             Catálogo: {ABAS.find(a => a.id === categoriaAtual)?.titulo}
