@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 interface Atributo {
   name: string;
@@ -19,7 +19,8 @@ interface ItemAPI {
   defense?: Atributo[]; 
   dmgNegation?: Atributo[]; 
   resistance?: Atributo[];
-  affinity?: string; skill?: string;
+  affinity?: string; 
+  skill?: string;
   stats?: { [key: string]: string };
 }
 
@@ -46,6 +47,9 @@ function App() {
   const [modalVerMaisAberto, setModalVerMaisAberto] = useState(false);
   const [todosItens, setTodosItens] = useState<ItemAPI[]>([]);
   const [carregandoTodos, setCarregandoTodos] = useState(false);
+
+  const [filtro, setFiltro] = useState('');
+  const [ordemAcervo, setOrdemAcervo] = useState('A-Z');
 
   useEffect(() => {
     setCarregandoGaleria(true);
@@ -113,6 +117,8 @@ function App() {
   const abrirVerMais = () => {
     setModalVerMaisAberto(true);
     setCarregandoTodos(true);
+    setFiltro(''); // Reseta o filtro ao abrir
+    setOrdemAcervo('A-Z'); // Reseta a ordem ao abrir
     
     fetch(`https://eldenring.fanapis.com/api/${categoriaAtual}?limit=100`)
       .then(res => res.json())
@@ -125,7 +131,30 @@ function App() {
       .catch(() => setCarregandoTodos(false));
   };
 
-  const renderizarAtributos = (item: ItemAPI) => {
+  const itensProcessados = useMemo(() => {
+    let lista = [...todosItens];
+
+    // Filtrar por nome
+    if (filtro.trim() !== '') {
+      lista = lista.filter(item => item.name.toLowerCase().includes(filtro.toLowerCase()));
+    }
+
+    // Ordenar
+    lista.sort((a, b) => {
+      if (ordemAcervo === 'A-Z') return a.name.localeCompare(b.name);
+      if (ordemAcervo === 'Z-A') return b.name.localeCompare(a.name);
+      
+      // Ordenações por peso
+      if (ordemAcervo === 'LEVE') return (a.weight || 0) - (b.weight || 0);
+      if (ordemAcervo === 'PESADO') return (b.weight || 0) - (a.weight || 0);
+
+      return 0;
+    });
+
+    return lista;
+  }, [todosItens, filtro, ordemAcervo]);
+
+  const renderizarAtributosDinamicos = (item: ItemAPI) => {
     switch (categoriaAtual) {
       case 'bosses':
         return (
@@ -143,6 +172,7 @@ function App() {
             )}
           </>
         );
+
       case 'classes':
         return (
           <div className="w-full border-t border-amber-900/30 pt-4 mt-6 text-left">
@@ -150,13 +180,14 @@ function App() {
             <div className="grid grid-cols-4 gap-2 text-center text-sm font-sans">
               {item.stats && Object.entries(item.stats).map(([chave, valor]) => (
                 <div key={chave} className="bg-neutral-900 border border-neutral-800 p-2 rounded">
-                  <p className="text-neutral-500 text-[10px] uppercase tracking-wider">{chave}</p>
+                  <p className="text-neutral-500 text-[10px] uppercase tracking-wider truncate">{chave}</p>
                   <p className="text-amber-500 font-bold">{valor}</p>
                 </div>
               ))}
             </div>
           </div>
         );
+
       case 'weapons':
         return (
           <>
@@ -165,12 +196,9 @@ function App() {
               <span>•</span>
               <span>Peso: {item.weight || "0.0"}</span>
             </div>
-            
             {item.attack && item.attack.length > 0 && (
               <div className="w-full border-t border-amber-900/30 pt-4 mt-4 text-left">
-                <p className="text-amber-600 font-['Cinzel'] font-bold text-xs uppercase tracking-widest mb-3 text-center">
-                  Poder de Ataque
-                </p>
+                <p className="text-amber-600 font-['Cinzel'] font-bold text-xs uppercase tracking-widest mb-3 text-center">Poder de Ataque</p>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 text-center text-sm font-sans">
                   {item.attack.map((atributo, idx) => (
                     <div key={idx} className="bg-neutral-900 border border-neutral-800 p-2 rounded">
@@ -192,7 +220,6 @@ function App() {
               <span>•</span>
               <span>Peso: {item.weight || "0.0"}</span>
             </div>
-
             {item.dmgNegation && item.dmgNegation.length > 0 && (
               <div className="w-full border-t border-amber-900/30 pt-4 mt-4 text-left">
                 <p className="text-amber-600 font-['Cinzel'] font-bold text-xs uppercase tracking-widest mb-3 text-center">Negação de Dano</p>
@@ -206,7 +233,6 @@ function App() {
                 </div>
               </div>
             )}
-
             {item.resistance && item.resistance.length > 0 && (
               <div className="w-full border-t border-amber-900/30 pt-4 mt-4 text-left">
                 <p className="text-amber-600 font-['Cinzel'] font-bold text-xs uppercase tracking-widest mb-3 text-center">Resistências</p>
@@ -222,6 +248,7 @@ function App() {
             )}
           </>
         );
+
       case 'ashes':
         return (
           <div className="flex justify-center gap-4 text-xs font-sans text-amber-500/80 mb-6 uppercase tracking-wider w-full">
@@ -230,6 +257,7 @@ function App() {
             <span>Habilidade: {item.skill || "Unknown"}</span>
           </div>
         );
+
       default:
         return null;
     }
@@ -237,16 +265,17 @@ function App() {
 
   return (
     <div className="relative min-h-screen bg-neutral-950 text-slate-300 flex flex-col items-center justify-start font-['Cormorant_Garamond'] p-4 md:p-8">
-      <div className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-20 pointer-events-none" style={{ backgroundImage: "url('/fundo.png')" }} />
+      <div className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-20 pointer-events-none" style={{ backgroundImage: "url('/fundo.jpg')" }} />
 
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center gap-6">
         
+        {/* HEADER E NAVEGAÇÃO */}
         <div className="border border-amber-900/50 bg-neutral-950/80 p-6 md:p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] text-center w-full backdrop-blur-sm">
-          <h1 className="text-4xl md:text-5xl text-amber-500 mb-4 tracking-widest uppercase drop-shadow-md font-['Cinzel'] font-bold">
-            Elden Ring Wiki
-          </h1>
-          <p className="text-xl text-slate-400 italic mb-4"> {/** tamanho - cor - estilização */}
-            De fã para fã!
+            <h1 className="text-5xl text-amber-500 mb-4 tracking-widest uppercase dropshadow-md font-['Cinzel']"> {/** tamanho - cor da letra - margin bottom - distanciamento das letras - letras maiusculas */}
+              Elden Ring Wiki
+            </h1>
+            <p className="text-xl text-slate-400 italic mb-4"> {/** tamanho - cor - estilização */}
+              De fã para fã!
             </p>
 
           <div className="flex flex-wrap justify-center gap-2 mb-8">
@@ -295,7 +324,7 @@ function App() {
         </div>
 
         {loading ? (
-          <div className="border border-amber-900/50 bg-neutral-950/80 p-8 rounded-xl text-center w-full backdrop-blur-sm"><p className="text-xl text-amber-600/70 italic animate-pulse">Consultando os pergaminhos...</p></div>
+          <div className="border border-amber-900/50 bg-neutral-950/80 p-8 rounded-xl text-center w-full backdrop-blur-sm"><p className="text-xl text-amber-600/70 italic animate-pulse">Consultando informações...</p></div>
         ) : itemSelecionado ? (
           <div className="border border-amber-900/50 bg-neutral-950/80 p-6 md:p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] text-center w-full backdrop-blur-sm animate-fade-in">
             <div className="flex flex-col items-center text-left">
@@ -308,12 +337,11 @@ function App() {
               )}
               <h2 className="text-3xl md:text-4xl text-neutral-100 font-bold mb-4 w-full text-center font-['Cinzel']">{itemSelecionado.name}</h2>
               <p className="text-base md:text-lg text-neutral-400 text-justify leading-relaxed mb-2">{itemSelecionado.description || "No description available."}</p>
-              {renderizarAtributos(itemSelecionado)}
+              {renderizarAtributosDinamicos(itemSelecionado)}
             </div>
           </div>
         ) : null}
 
-        {/* Galeria Inicial */}
         <div className="border border-amber-900/50 bg-neutral-950/80 p-6 md:p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] w-full backdrop-blur-sm text-center">
           <h3 className="text-xl text-amber-500 mb-6 tracking-widest uppercase font-['Cinzel'] font-bold">
             Catálogo: {ABAS.find(a => a.id === categoriaAtual)?.titulo}
@@ -364,7 +392,7 @@ function App() {
       {modalVerMaisAberto && (
         <div className="fixed inset-0 z-50 flex flex-col bg-neutral-950/95 backdrop-blur-md p-4 md:p-10 animate-fade-in">
           
-          <div className="flex justify-between items-center mb-8 border-b border-amber-900/30 pb-4">
+          <div className="flex justify-between items-center mb-6 border-b border-amber-900/30 pb-4">
             <h2 className="text-2xl md:text-3xl text-amber-500 font-['Cinzel'] font-bold tracking-widest uppercase drop-shadow-md">
               Acervo Completo: {ABAS.find(a => a.id === categoriaAtual)?.titulo}
             </h2>
@@ -376,12 +404,41 @@ function App() {
             </button>
           </div>
 
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <input 
+              type="text" 
+              placeholder="🔍 Filtrar nomes nesta lista..."
+              value={filtro}
+              onChange={(e) => setFiltro(e.target.value)}
+              className="flex-1 bg-neutral-900 border border-neutral-700 text-neutral-300 px-4 py-2 rounded-md focus:outline-none focus:border-amber-700 transition-colors"
+            />
+            
+            <select 
+              value={ordemAcervo} 
+              onChange={(e) => setOrdemAcervo(e.target.value)}
+              className="bg-neutral-900 border border-neutral-700 text-neutral-300 px-4 py-2 rounded-md focus:outline-none focus:border-amber-700 font-['Cinzel']"
+            >
+              <option value="A-Z">Ordem Alfabética (A-Z)</option>
+              <option value="Z-A">Ordem Alfabética (Z-A)</option>
+              
+                  {(categoriaAtual === 'bosses' || categoriaAtual === 'classes')};
+                  {(categoriaAtual === 'weapons' || categoriaAtual === 'armors') && (
+                <>
+                  <option value="LEVE">Mais Leves (Peso Menor)</option>
+                  <option value="PESADO">Mais Pesados (Peso Maior)</option>
+                </>
+              )}
+            </select>
+          </div>
+
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
             {carregandoTodos ? (
               <p className="text-xl text-amber-600/70 italic animate-pulse text-center mt-20">Explorando as profundezas da Térvore...</p>
+            ) : itensProcessados.length === 0 ? (
+              <p className="text-xl text-neutral-600 italic text-center mt-20">Nenhum item identificado...</p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-10">
-                {todosItens.map((item) => (
+                {itensProcessados.map((item) => (
                   <div 
                     key={item.id}
                     onClick={() => {
@@ -389,7 +446,7 @@ function App() {
                       setModalVerMaisAberto(false);
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
-                    className="group bg-neutral-900 border border-neutral-800 hover:border-amber-700/60 rounded-lg p-3 cursor-pointer transition-all hover:scale-105 flex flex-col items-center shadow-md justify-between"
+                    className="group bg-neutral-900 border border-neutral-800 hover:border-amber-700/60 rounded-lg p-3 cursor-pointer transition-all hover:scale-105 flex flex-col items-center shadow-md justify-between relative"
                   >
                     {item.image ? (
                       <img src={item.image} alt={item.name} className="w-full h-32 object-contain object-center rounded-md mb-3 filter grayscale group-hover:grayscale-0 transition-all bg-neutral-950/50 p-2" />
@@ -399,6 +456,13 @@ function App() {
                     <p className="text-xs text-amber-500/90 group-hover:text-amber-400 font-['Cinzel'] w-full text-center truncate px-1">
                       {item.name}
                     </p>
+
+                    {/* Exibe o peso no card se for de arma/armadura */}
+                    {(categoriaAtual === 'weapons' || categoriaAtual === 'armors') && item.weight !== undefined && (
+                      <span className="absolute top-2 right-2 bg-neutral-950/80 text-neutral-400 text-[10px] px-2 py-1 rounded border border-neutral-800">
+                        {item.weight} kg
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
