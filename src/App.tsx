@@ -136,37 +136,42 @@ function App() {
   const itensProcessados = useMemo(() => {
     let lista = [...todosItens];
 
-    // 1. Filtrar pelo nome digitado
     if (filtro.trim() !== '') {
       lista = lista.filter(item => item.name.toLowerCase().includes(filtro.toLowerCase()));
     }
 
-    if (ordemAcervo.startsWith('DMG_')) {
-      const tipoDano = ordemAcervo.replace('DMG_', ''); // Ex: "Phy", "Mag", "Fire"
+    // Lógica Universal para Ataque, Negação ou Resistência
+    const padraoEspecial = ordemAcervo.startsWith('DMG_') || ordemAcervo.startsWith('NEG_') || ordemAcervo.startsWith('RES_');
+    
+    if (padraoEspecial) {
+      const prefixo = ordemAcervo.substring(0, 4); // "DMG_", "NEG_", ou "RES_"
+      const tipoAtributo = ordemAcervo.substring(4); // Ex: "Phy", "Fire", "Immunity"
       
-      const obterValorDano = (item: ItemAPI) => {
-        if (!item.attack) return 0;
-        const atributo = item.attack.find(a => a.name === tipoDano);
+      const obterValorExato = (item: ItemAPI) => {
+        let listaAlvo: Atributo[] | undefined = [];
+        if (prefixo === 'DMG_') listaAlvo = item.attack;
+        if (prefixo === 'NEG_') listaAlvo = item.dmgNegation;
+        if (prefixo === 'RES_') listaAlvo = item.resistance;
+
+        if (!listaAlvo) return 0;
+        const atributo = listaAlvo.find(a => a.name === tipoAtributo);
         if (!atributo) return 0;
-        const num = parseInt(atributo.amount.toString(), 10);
+        
+        // Usamos parseFloat para não quebrar a ordem das armaduras (ex: 4.5 vs 4.8)
+        const num = parseFloat(atributo.amount.toString());
         return isNaN(num) ? 0 : num;
       };
 
-      lista = lista.filter(item => obterValorDano(item) > 0);
-
-      lista.sort((a, b) => obterValorDano(b) - obterValorDano(a));
+      // Mantém apenas quem tem o atributo > 0 e ordena do maior para o menor
+      lista = lista.filter(item => obterValorExato(item) > 0);
+      lista.sort((a, b) => obterValorExato(b) - obterValorExato(a));
 
     } else {
-
-    // Ordenar
       lista.sort((a, b) => {
         if (ordemAcervo === 'A-Z') return a.name.localeCompare(b.name);
         if (ordemAcervo === 'Z-A') return b.name.localeCompare(a.name);
-        
-        // Ordenações por peso
         if (ordemAcervo === 'LEVE') return (a.weight || 0) - (b.weight || 0);
         if (ordemAcervo === 'PESADO') return (b.weight || 0) - (a.weight || 0);
-
         return 0;
       });
     }
@@ -289,7 +294,6 @@ function App() {
 
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center gap-6">
         
-        {/* HEADER E NAVEGAÇÃO */}
         <div className="border border-amber-900/50 bg-neutral-950/80 p-6 md:p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] text-center w-full backdrop-blur-sm">
             <h1 className="text-5xl text-amber-500 mb-4 tracking-widest uppercase dropshadow-md font-['Cinzel']"> {/** tamanho - cor da letra - margin bottom - distanciamento das letras - letras maiusculas */}
               Elden Ring Wiki
@@ -459,7 +463,7 @@ function App() {
                       <option value="PESADO">Mais Pesados</option>
                     </optgroup>
                   )}
-              {/* OPÇÕES EXCLUSIVAS DE DANO PARA ARMAS */}
+
               {categoriaAtual === 'weapons' && (
                 <optgroup label="Maior Dano Específico">
                   <option value="DMG_Phy">Dano Físico (Phy)</option>
@@ -470,6 +474,29 @@ function App() {
                   <option value="DMG_Crit">Dano Crítico (Crit)</option>
                 </optgroup>
               )}
+              {categoriaAtual === 'armors' && (
+                <>
+                  <optgroup label="Maior Negação de Dano (Defesa)">
+                    <option value="NEG_Phy">Físico (Phy)</option>
+                    <option value="NEG_Strike">Contusão (Strike)</option>
+                    <option value="NEG_Slash">Corte (Slash)</option>
+                    <option value="NEG_Pierce">Perfuração (Pierce)</option>
+                    <option value="NEG_Magic">Mágico (Magic)</option>
+                    <option value="NEG_Fire">Fogo (Fire)</option>
+                    <option value="NEG_Ligt">Raio (Ligt)</option>
+                    <option value="NEG_Holy">Sagrado (Holy)</option>
+                  </optgroup>
+
+                  <optgroup label="Maior Resistência">
+                    <option value="RES_Immunity">Imunidade (Immunity)</option>
+                    <option value="RES_Robustness">Robustez (Robustness)</option>
+                    <option value="RES_Focus">Foco (Focus)</option>
+                    <option value="RES_Vitality">Vitalidade (Vitality)</option>
+                    <option value="RES_Poise">Equilíbrio (Poise)</option>
+                  </optgroup>
+                </>
+              )}
+
             </select>
           </div>
 
