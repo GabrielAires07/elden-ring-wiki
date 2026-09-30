@@ -19,8 +19,7 @@ interface ItemAPI {
   defense?: Atributo[]; 
   dmgNegation?: Atributo[]; 
   resistance?: Atributo[];
-  affinity?: string; 
-  skill?: string;
+  affinity?: string; skill?: string;
   stats?: { [key: string]: string };
 }
 
@@ -36,7 +35,7 @@ function App() {
   const [categoriaAtual, setCategoriaAtual] = useState('bosses');
   const [itemSelecionado, setItemSelecionado] = useState<ItemAPI | null>(null);
   
-  const [busca, setBusca] = useState('');
+  const [termoBusca, setTermoBusca] = useState('');
   const [sugestoes, setSugestoes] = useState<ItemAPI[]>([]);
   const [modalAberto, setModalAberto] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -47,7 +46,9 @@ function App() {
   const [modalVerMaisAberto, setModalVerMaisAberto] = useState(false);
   const [todosItens, setTodosItens] = useState<ItemAPI[]>([]);
   const [carregandoTodos, setCarregandoTodos] = useState(false);
-  const [filtro, setFiltro] = useState('');
+  
+  const [filtroAcervo, setFiltroAcervo] = useState('');
+  const [filtroAtributo, setFiltroAtributo] = useState(''); 
   const [ordemAcervo, setOrdemAcervo] = useState('A-Z');
 
   const [paginaAcervo, setPaginaAcervo] = useState(0);
@@ -57,53 +58,46 @@ function App() {
   useEffect(() => {
     setCarregandoGaleria(true);
     setItemSelecionado(null);
-    setBusca('');
+    setTermoBusca('');
     setSugestoes([]);
 
     fetch(`https://eldenring.fanapis.com/api/${categoriaAtual}?limit=12`)
       .then(res => res.json())
       .then(dados => {
-        if (dados.data) {
-          setGaleria(dados.data);
-        }
+        if (dados.data) setGaleria(dados.data);
         setCarregandoGaleria(false);
       })
       .catch(() => setCarregandoGaleria(false));
   }, [categoriaAtual]);
 
   useEffect(() => {
-    if (busca.length < 2 || (itemSelecionado && itemSelecionado.name.toLowerCase() === busca.toLowerCase())) {
+    if (termoBusca.length < 2 || (itemSelecionado && itemSelecionado.name.toLowerCase() === termoBusca.toLowerCase())) {
       setSugestoes([]);
       return;
     }
 
     const delay = setTimeout(() => {
-      fetch(`https://eldenring.fanapis.com/api/${categoriaAtual}?name=${busca}`)
+      fetch(`https://eldenring.fanapis.com/api/${categoriaAtual}?name=${termoBusca}`)
         .then(res => res.json())
         .then(dados => {
-          if (dados.data) {
-            setSugestoes(dados.data.slice(0, 5));
-          }
+          if (dados.data) setSugestoes(dados.data.slice(0, 5));
         })
         .catch(() => setSugestoes([]));
     }, 300);
 
     return () => clearTimeout(delay);
-  }, [busca, itemSelecionado, categoriaAtual]);
+  }, [termoBusca, itemSelecionado, categoriaAtual]);
 
   const buscarItemExato = (nome: string) => {
     setLoading(true);
     setSugestoes([]);
-    setBusca('');
+    setTermoBusca('');
     
     fetch(`https://eldenring.fanapis.com/api/${categoriaAtual}?name=${nome}`)
       .then(res => res.json())
       .then(dados => {
-        if (dados.data && dados.data.length > 0) {
-          setItemSelecionado(dados.data[0]);
-        } else {
-          setItemSelecionado(null);
-        }
+        if (dados.data && dados.data.length > 0) setItemSelecionado(dados.data[0]);
+        else setItemSelecionado(null);
         setLoading(false);
       })
       .catch(() => {
@@ -114,14 +108,15 @@ function App() {
 
   const pesquisar = (e: React.FormEvent) => {
     e.preventDefault();
-    if (busca.trim() !== '') buscarItemExato(busca);
+    if (termoBusca.trim() !== '') buscarItemExato(termoBusca);
   };
 
   const abrirVerMais = () => {
     setModalVerMaisAberto(true);
     setCarregandoTodos(true);
-    setFiltro(''); // Reseta o filtro ao abrir
-    setOrdemAcervo('A-Z'); // Reseta a ordem ao abrir
+    setFiltroAcervo(''); 
+    setFiltroAtributo(''); // Reseta o atributo focado
+    setOrdemAcervo('A-Z'); // Reseta a ordem
     setPaginaAcervo(0);
     setTemMaisItens(true);
     
@@ -130,7 +125,6 @@ function App() {
       .then(dados => {
         if (dados.data) {
           setTodosItens(dados.data);
-          // Se a API trouxer menos de 100, significa que não tem mais páginas
           if (dados.data.length < 100) setTemMaisItens(false);
         }
         setCarregandoTodos(false);
@@ -148,7 +142,6 @@ function App() {
         if (dados.data && dados.data.length > 0) {
           setTodosItens(prev => [...prev, ...dados.data]);
           setPaginaAcervo(proximaPagina);
-          
           if (dados.data.length < 100) setTemMaisItens(false);
         } else {
           setTemMaisItens(false);
@@ -161,48 +154,75 @@ function App() {
       });
   };
 
+  // Se escolher um atributo, muda a ordem automaticamente para facilitar a vida do usuário
+  const lidarComMudancaAtributo = (valor: string) => {
+    setFiltroAtributo(valor);
+    if (valor !== '' && (ordemAcervo === 'A-Z' || ordemAcervo === 'Z-A')) {
+      setOrdemAcervo('ATRIBUTO_MAIOR'); // Auto-seleciona para mostrar do maior pro menor
+    }
+  };
+
   const itensProcessados = useMemo(() => {
     let lista = [...todosItens];
 
-    if (filtro.trim() !== '') {
-      lista = lista.filter(item => item.name.toLowerCase().includes(filtro.toLowerCase()));
+    // Filtrar pelo nome digitado
+    if (filtroAcervo.trim() !== '') {
+      lista = lista.filter(item => item.name.toLowerCase().includes(filtroAcervo.toLowerCase()));
     }
 
-    const padraoEspecial = ordemAcervo.startsWith('DMG_') || ordemAcervo.startsWith('NEG_') || ordemAcervo.startsWith('RES_');
-    
-    if (padraoEspecial) {
-      const prefixo = ordemAcervo.substring(0, 4); 
-      const tipoAtributo = ordemAcervo.substring(4); 
+    // Função universal para ler um atributo específico
+    const obterValorExato = (item: ItemAPI, idFiltro: string) => {
+      if (!idFiltro) return 0;
+      const prefixo = idFiltro.substring(0, 4); 
+      const tipoAtributo = idFiltro.substring(4); 
       
-      const obterValorExato = (item: ItemAPI) => {
-        let listaAlvo: Atributo[] | undefined = [];
-        if (prefixo === 'DMG_') listaAlvo = item.attack;
-        if (prefixo === 'NEG_') listaAlvo = item.dmgNegation;
-        if (prefixo === 'RES_') listaAlvo = item.resistance;
+      let listaAlvo: Atributo[] | undefined = [];
+      if (prefixo === 'DMG_') listaAlvo = item.attack;
+      if (prefixo === 'NEG_') listaAlvo = item.dmgNegation;
+      if (prefixo === 'RES_') listaAlvo = item.resistance;
 
-        if (!listaAlvo) return 0;
-        const atributo = listaAlvo.find(a => a.name === tipoAtributo);
-        if (!atributo) return 0;
-        
-        const num = parseFloat(atributo.amount.toString());
-        return isNaN(num) ? 0 : num;
-      };
+      if (!listaAlvo) return 0;
+      const atributo = listaAlvo.find(a => a.name === tipoAtributo);
+      if (!atributo) return 0;
+      
+      const num = parseFloat(atributo.amount.toString());
+      return isNaN(num) ? 0 : num;
+    };
 
-      lista = lista.filter(item => obterValorExato(item) > 0);
-      lista.sort((a, b) => obterValorExato(b) - obterValorExato(a));
-
-    } else {
-      lista.sort((a, b) => {
-        if (ordemAcervo === 'A-Z') return a.name.localeCompare(b.name);
-        if (ordemAcervo === 'Z-A') return b.name.localeCompare(a.name);
-        if (ordemAcervo === 'LEVE') return (a.weight || 0) - (b.weight || 0);
-        if (ordemAcervo === 'PESADO') return (b.weight || 0) - (a.weight || 0);
-        return 0;
-      });
+    // Exclui da lista tudo que tem "0" no atributo focado
+    if (filtroAtributo) {
+      lista = lista.filter(item => obterValorExato(item, filtroAtributo) > 0);
     }
+
+    lista.sort((a, b) => {
+      if (ordemAcervo === 'A-Z') return a.name.localeCompare(b.name);
+      if (ordemAcervo === 'Z-A') return b.name.localeCompare(a.name);
+      
+      if (ordemAcervo === 'LEVE') {
+        const pesoA = a.weight || 0; const pesoB = b.weight || 0;
+        if (pesoA !== pesoB) return pesoA - pesoB;
+        if (filtroAtributo) return obterValorExato(b, filtroAtributo) - obterValorExato(a, filtroAtributo);
+        return 0;
+      }
+      if (ordemAcervo === 'PESADO') {
+        const pesoA = a.weight || 0; const pesoB = b.weight || 0;
+        if (pesoA !== pesoB) return pesoB - pesoA;
+        if (filtroAtributo) return obterValorExato(b, filtroAtributo) - obterValorExato(a, filtroAtributo);
+        return 0;
+      }
+      
+      if (ordemAcervo === 'ATRIBUTO_MAIOR' && filtroAtributo) {
+        const valA = obterValorExato(a, filtroAtributo);
+        const valB = obterValorExato(b, filtroAtributo);
+        if (valA !== valB) return valB - valA; // Maior atributo ganha
+        return (a.weight || 0) - (b.weight || 0); // Desempate: Mais leve ganha
+      }
+      
+      return 0;
+    });
 
     return lista;
-  }, [todosItens, filtro, ordemAcervo]);
+  }, [todosItens, filtroAcervo, filtroAtributo, ordemAcervo]);
 
   const renderizarAtributosDinamicos = (item: ItemAPI) => {
     switch (categoriaAtual) {
@@ -239,6 +259,7 @@ function App() {
         );
 
       case 'weapons':
+      case 'armors':
         return (
           <>
             <div className="flex justify-center gap-4 text-xs font-sans text-amber-500/80 mb-2 uppercase tracking-wider w-full">
@@ -259,17 +280,6 @@ function App() {
                 </div>
               </div>
             )}
-          </>
-        );
-
-      case 'armors':
-        return (
-          <>
-            <div className="flex justify-center gap-4 text-xs font-sans text-amber-500/80 mb-2 uppercase tracking-wider w-full">
-              <span>Categoria: {item.category || "Unknown"}</span>
-              <span>•</span>
-              <span>Peso: {item.weight || "0.0"}</span>
-            </div>
             {item.dmgNegation && item.dmgNegation.length > 0 && (
               <div className="w-full border-t border-amber-900/30 pt-4 mt-4 text-left">
                 <p className="text-amber-600 font-['Cinzel'] font-bold text-xs uppercase tracking-widest mb-3 text-center">Negação de Dano</p>
@@ -319,13 +329,14 @@ function App() {
 
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center gap-6">
         
+        {/* HEADER E NAVEGAÇÃO */}
         <div className="border border-amber-900/50 bg-neutral-950/80 p-6 md:p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] text-center w-full backdrop-blur-sm">
-            <h1 className="text-5xl text-amber-500 mb-4 tracking-widest uppercase dropshadow-md font-['Cinzel']"> {/** tamanho - cor da letra - margin bottom - distanciamento das letras - letras maiusculas */}
-              Elden Ring Wiki
-            </h1>
-            <p className="text-xl text-slate-400 italic mb-4"> {/** tamanho - cor - estilização */}
-              De fã para fã!
-            </p>
+          <h1 className="text-5xl text-amber-500 mb-4 tracking-widest uppercase dropshadow-md font-['Cinzel']"> {/** tamanho - cor da letra - margin bottom - distanciamento das letras - letras maiusculas */}
+            Elden Ring Wiki
+          </h1>
+          <p className="text-xl text-slate-400 italic mb-4"> {/** tamanho - cor - estilização */}
+            De fã para fã!
+          </p>
 
           <div className="flex flex-wrap justify-center gap-2 mb-8">
             {ABAS.map((aba) => (
@@ -351,13 +362,13 @@ function App() {
               <input 
                 type="text" 
                 placeholder={`Pesquisar em ${ABAS.find(a => a.id === categoriaAtual)?.titulo}...`}
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
+                value={termoBusca}
+                onChange={(e) => setTermoBusca(e.target.value)}
                 onFocus={(e) => e.target.select()}
                 className="w-full bg-neutral-900 border border-neutral-700 text-neutral-300 pl-11 py-3 pr-10 rounded-md focus:outline-none focus:border-amber-700 transition-colors"
               />
-              {busca && (
-                <button type="button" onClick={() => setBusca('')} className="absolute right-3 text-neutral-500 hover:text-amber-500 font-bold transition-colors">✕</button>
+              {termoBusca && (
+                <button type="button" onClick={() => setTermoBusca('')} className="absolute right-3 text-neutral-500 hover:text-amber-500 font-bold transition-colors">✕</button>
               )}
               {sugestoes.length > 0 && (
                 <ul className="absolute top-full left-0 w-full mt-1 bg-neutral-900 border border-amber-900/50 rounded-md shadow-2xl z-20 max-h-48 overflow-y-auto text-left">
@@ -376,7 +387,7 @@ function App() {
         </div>
 
         {loading ? (
-          <div className="border border-amber-900/50 bg-neutral-950/80 p-8 rounded-xl text-center w-full backdrop-blur-sm"><p className="text-xl text-amber-600/70 italic animate-pulse">Consultando informações...</p></div>
+          <div className="border border-amber-900/50 bg-neutral-950/80 p-8 rounded-xl text-center w-full backdrop-blur-sm"><p className="text-xl text-amber-600/70 italic animate-pulse">Consultando os pergaminhos...</p></div>
         ) : itemSelecionado ? (
           <div className="border border-amber-900/50 bg-neutral-950/80 p-6 md:p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] text-center w-full backdrop-blur-sm animate-fade-in">
             <div className="flex flex-col items-center text-left">
@@ -394,6 +405,7 @@ function App() {
           </div>
         ) : null}
 
+        {/* Galeria Inicial */}
         <div className="border border-amber-900/50 bg-neutral-950/80 p-6 md:p-8 rounded-xl shadow-[0_0_30px_rgba(180,83,9,0.15)] w-full backdrop-blur-sm text-center">
           <h3 className="text-xl text-amber-500 mb-6 tracking-widest uppercase font-['Cinzel'] font-bold">
             Catálogo: {ABAS.find(a => a.id === categoriaAtual)?.titulo}
@@ -444,109 +456,120 @@ function App() {
       {modalVerMaisAberto && (
         <div className="fixed inset-0 z-50 flex flex-col bg-neutral-950/95 backdrop-blur-md p-4 md:p-10 animate-fade-in">
           
-          <div className="flex justify-between items-center mb-6 border-b border-amber-900/30 pb-4">
+          <div className="flex justify-between items-center mb-6 border-b border-amber-900/30 pb-4 px-2">
             <h2 className="text-2xl md:text-3xl text-amber-500 font-['Cinzel'] font-bold tracking-widest uppercase drop-shadow-md">
               Acervo Completo: {ABAS.find(a => a.id === categoriaAtual)?.titulo}
             </h2>
             <button 
-              className="text-neutral-500 hover:text-amber-500 font-bold text-2xl transition-colors px-4"
+              className="text-neutral-500 hover:text-amber-500 font-bold text-2xl transition-colors px-2"
               onClick={() => setModalVerMaisAberto(false)}
             >
               ✕
             </button>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-4 mb-6 px-2">
+          <div className="flex flex-col md:flex-row gap-3 mb-6 px-2">
             <div className="relative flex-1 flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 w-5 h-5 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input 
                 type="text" 
-                placeholder="Filtrar nomes nesta lista"
-                value={filtro}
-                onChange={(e) => setFiltro(e.target.value)}
+                placeholder="Filtrar por nome..."
+                value={filtroAcervo}
+                onChange={(e) => setFiltroAcervo(e.target.value)}
                 className="w-full bg-neutral-900 border border-neutral-700 text-neutral-300 pl-10 pr-4 py-2 rounded-md focus:outline-none focus:border-amber-700 transition-colors"
               />
             </div>
             
+            {(categoriaAtual === 'weapons' || categoriaAtual === 'armors') && (
+              <select 
+                value={filtroAtributo} 
+                onChange={(e) => lidarComMudancaAtributo(e.target.value)}
+                className="bg-neutral-900 border border-neutral-700 text-neutral-300 px-4 py-2 rounded-md focus:outline-none focus:border-amber-700 font-['Cinzel'] cursor-pointer"
+              >
+                <option value="">Atributo Focado: Todos</option>
+                {categoriaAtual === 'weapons' && (
+                  <optgroup label="Dano Mínimo Necessário">
+                    <option value="DMG_Phy">Dano Físico</option>
+                    <option value="DMG_Mag">Dano Mágico</option>
+                    <option value="DMG_Fire">Dano de Fogo</option>
+                    <option value="DMG_Ligt">Dano de Raio</option>
+                    <option value="DMG_Holy">Dano Sagrado</option>
+                    <option value="DMG_Crit">Crítico</option>
+                  </optgroup>
+                )}
+                {categoriaAtual === 'armors' && (
+                  <>
+                    <optgroup label="Negação de Dano Necessária">
+                      <option value="NEG_Phy">Físico</option>
+                      <option value="NEG_Strike">Contusão</option>
+                      <option value="NEG_Slash">Corte</option>
+                      <option value="NEG_Pierce">Perfuração</option>
+                      <option value="NEG_Magic">Mágico</option>
+                      <option value="NEG_Fire">Fogo</option>
+                      <option value="NEG_Ligt">Raio</option>
+                      <option value="NEG_Holy">Sagrado</option>
+                    </optgroup>
+                    <optgroup label="Resistência Necessária">
+                      <option value="RES_Immunity">Imunidade</option>
+                      <option value="RES_Robustness">Robustez</option>
+                      <option value="RES_Focus">Foco</option>
+                      <option value="RES_Vitality">Vitalidade</option>
+                      <option value="RES_Poise">Equilíbrio</option>
+                    </optgroup>
+                  </>
+                )}
+              </select>
+            )}
+
+
             <select 
               value={ordemAcervo} 
               onChange={(e) => setOrdemAcervo(e.target.value)}
-              className="bg-neutral-900 border border-neutral-700 text-neutral-300 px-4 py-2 rounded-md focus:outline-none focus:border-amber-700 font-['Cinzel']"
+              className="bg-neutral-900 border border-neutral-700 text-neutral-300 px-4 py-2 rounded-md focus:outline-none focus:border-amber-700 font-['Cinzel'] cursor-pointer"
             >
-              <optgroup label="Básico">
-                <option value="A-Z">Ordem Alfabética (A-Z)</option>
-                <option value="Z-A">Ordem Alfabética (Z-A)</option>
+              <optgroup label="Ordem Alfabética">
+                <option value="A-Z">A-Z</option>
+                <option value="Z-A">Z-A</option>
               </optgroup>
 
-                  {(categoriaAtual === 'bosses' || categoriaAtual === 'classes')};
-                  {(categoriaAtual === 'weapons' || categoriaAtual === 'armors') && (
-              
-                    <optgroup label="Peso">
-                      <option value="LEVE">Mais Leves</option>
-                      <option value="PESADO">Mais Pesados</option>
-                    </optgroup>
-                  )}
-
-              {categoriaAtual === 'weapons' && (
-                <optgroup label="Maior Dano Específico">
-                  <option value="DMG_Phy">Dano Físico (Phy)</option>
-                  <option value="DMG_Mag">Dano Mágico (Mag)</option>
-                  <option value="DMG_Fire">Dano de Fogo (Fire)</option>
-                  <option value="DMG_Ligt">Dano de Raio (Ligt)</option>
-                  <option value="DMG_Holy">Dano Sagrado (Holy)</option>
-                  <option value="DMG_Crit">Dano Crítico (Crit)</option>
+              {(categoriaAtual === 'weapons' || categoriaAtual === 'armors') && (
+                <optgroup label="Priorizar Peso">
+                  <option value="LEVE">Mais Leves Primeiro</option>
+                  <option value="PESADO">Mais Pesados Primeiro</option>
                 </optgroup>
               )}
-              {categoriaAtual === 'armors' && (
-                <>
-                  <optgroup label="Maior Negação de Dano (Defesa)">
-                    <option value="NEG_Phy">Físico (Phy)</option>
-                    <option value="NEG_Strike">Contusão (Strike)</option>
-                    <option value="NEG_Slash">Corte (Slash)</option>
-                    <option value="NEG_Pierce">Perfuração (Pierce)</option>
-                    <option value="NEG_Magic">Mágico (Magic)</option>
-                    <option value="NEG_Fire">Fogo (Fire)</option>
-                    <option value="NEG_Ligt">Raio (Ligt)</option>
-                    <option value="NEG_Holy">Sagrado (Holy)</option>
-                  </optgroup>
 
-                  <optgroup label="Maior Resistência">
-                    <option value="RES_Immunity">Imunidade (Immunity)</option>
-                    <option value="RES_Robustness">Robustez (Robustness)</option>
-                    <option value="RES_Focus">Foco (Focus)</option>
-                    <option value="RES_Vitality">Vitalidade (Vitality)</option>
-                    <option value="RES_Poise">Equilíbrio (Poise)</option>
-                  </optgroup>
-                </>
+              {filtroAtributo !== '' && (
+                <optgroup label="Priorizar Status">
+                  <option value="ATRIBUTO_MAIOR">Maior Valor do Atributo</option>
+                </optgroup>
               )}
-
             </select>
           </div>
 
           <div className="flex-1 overflow-y-auto px-2 custom-scrollbar">
             {carregandoTodos && paginaAcervo === 0 ? (
-              <p className="text-xl text-amber-600/70 italic animate-pulse text-center mt-20">Explorando as profundezas da Térvore</p>
+              <p className="text-xl text-amber-600/70 italic animate-pulse text-center mt-20">Explorando as profundezas da Térvore...</p>
             ) : itensProcessados.length === 0 ? (
-              <p className="text-xl text-neutral-600 italic text-center mt-20">Nenhum item atende a estes critérios...</p>
+              <p className="text-xl text-neutral-600 italic text-center mt-20">Nenhum item encontrado...</p>
             ) : (
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 p-3 pb-6">
                   {itensProcessados.map((item) => {
-                    const padraoEspecial = ordemAcervo.startsWith('DMG_') || ordemAcervo.startsWith('NEG_') || ordemAcervo.startsWith('RES_');
-                    const prefixoAtual = padraoEspecial ? ordemAcervo.substring(0, 4) : '';
-                    const tipoAtributoAtual = padraoEspecial ? ordemAcervo.substring(4) : '';
+                    const prefixoAtual = filtroAtributo ? filtroAtributo.substring(0, 4) : '';
+                    const tipoAtributoAtual = filtroAtributo ? filtroAtributo.substring(4) : '';
                     
                     let valorAtributo = 0;
-                    if (padraoEspecial) {
+                    if (filtroAtributo) {
                       const listaRef = prefixoAtual === 'DMG_' ? item.attack : prefixoAtual === 'NEG_' ? item.dmgNegation : item.resistance;
                       valorAtributo = parseFloat(listaRef?.find(a => a.name === tipoAtributoAtual)?.amount?.toString() || '0');
                     }
 
                     return (
                       <div 
-                        key={`${item.id}-${Math.random()}`} // Ajuste p/ chaves duplicadas da API se houver
+                        key={`${item.id}-${Math.random()}`}
                         onClick={() => {
                           setItemSelecionado(item);
                           setModalVerMaisAberto(false);
@@ -563,7 +586,7 @@ function App() {
                           {item.name}
                         </p>
 
-                        {!padraoEspecial && (categoriaAtual === 'weapons' || categoriaAtual === 'armors') && item.weight !== undefined && (
+                        {(categoriaAtual === 'weapons' || categoriaAtual === 'armors') && item.weight !== undefined && (
                           <span className="absolute top-2 right-2 bg-neutral-950/90 text-neutral-300 text-xs font-medium px-2 py-1 rounded border border-neutral-700 shadow-sm">
                             {item.weight} kg
                           </span>
@@ -591,7 +614,6 @@ function App() {
                   })}
                 </div>
                 
-                {/* Botão de "Carregar Mais" dentro do Modal */}
                 {temMaisItens && (
                   <div className="w-full flex justify-center pb-10">
                     <button
@@ -608,6 +630,7 @@ function App() {
           </div>
         </div>
       )}
+
     </div>
   )
 }
